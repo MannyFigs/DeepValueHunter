@@ -770,7 +770,7 @@
 }
 
 .stock-change.positive {
-    color: var(--accent-emerald);
+    color: var(--accent-lime);
 }
 
 .stock-change.negative {
@@ -941,7 +941,7 @@
 }
 
 .index-change.positive {
-    color: var(--accent-emerald);
+    color: var(--accent-lime);
 }
 
 .change-period {
