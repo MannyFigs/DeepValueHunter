@@ -40,6 +40,9 @@ coverage/
 # Backups folder
 backups/
 
+# Archive folder (test files, etc.)
+archive/
+
 # Temporary files
 *.tmp
 *.temp
