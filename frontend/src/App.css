@@ -1,15 +1,23 @@
 /* ... Previous Styles ... */
 .layout-root {
   display: flex;
-  min-height: 100vh;
-  background-color: var(--bg-dark);
+  height: 100vh;
+  background-color: transparent;
+}
+
+/* Mobile: use min-height to allow background to extend into safe areas */
+@media (max-width: 768px) {
+  .layout-root {
+    height: auto;
+    min-height: 100vh;
+  }
 }
 
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   overflow-y: auto;
 }
 
@@ -26,7 +34,7 @@
 .search-container {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: #1a1a1a;
   border-radius: 12px;
   padding: 0 16px;
   width: 400px;
@@ -40,7 +48,7 @@
   height: 44px;
   width: 100%;
   outline: none;
-  font-size: 0.9rem;
+  font-size: 16px; /* Prevents iOS auto-zoom on focus */
 }
 
 .search-kbd {
@@ -87,7 +95,7 @@
 /* Sidebar Styles */
 .sidebar {
   width: 280px;
-  height: 100vh;
+  height: 100%;
   background: var(--bg-charcoal);
   border-right: 1px solid var(--glass-border);
   display: flex;
@@ -601,6 +609,14 @@
     margin-bottom: 24px;
 }
 
+/* Mobile: reduce hero section padding */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 20px 20px;
+        margin-bottom: 15px;
+    }
+}
+
 .hero-search {
     max-width: 600px;
     margin: 0 auto;
@@ -670,7 +686,7 @@
 
 .indices-card .chart-container-full {
     flex: 1;
-    min-height: 200px;
+    height: 300px;
     margin-right: -20px;
     margin-left: -5px;
 }
@@ -777,6 +793,51 @@
     justify-content: center;
 }
 
+/* Mobile: horizontal scroll for index tabs instead of wrapping */
+@media (max-width: 768px) {
+    .indices-tabs-centered {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+        padding-bottom: 4px;
+    }
+
+    .indices-tabs-centered::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    .indices-tabs-centered .tab-btn {
+        flex-shrink: 0; /* Prevent buttons from shrinking */
+    }
+
+    /* Mobile: keep index data aligned on one line */
+    .index-header-row {
+        flex-wrap: nowrap;
+    }
+
+    .index-header-row .index-info {
+        flex-shrink: 0;
+    }
+
+    .index-price-section .price-large {
+        font-size: 1.5rem; /* Smaller price on mobile */
+    }
+
+    .index-price-section .index-change {
+        flex-wrap: nowrap;
+        font-size: 0.8rem;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .index-price-section .change-period {
+        font-size: 0.75rem;
+    }
+}
+
 .index-header-row {
     display: flex;
     justify-content: space-between;
@@ -809,7 +870,7 @@
 
 .chart-container-full {
     flex: 1;
-    min-height: 200px;
+    height: 300px;
 }
 
 .tab-btn {
@@ -1066,6 +1127,31 @@
     color: white;
 }
 
+/* Mobile footer - stack vertically and center */
+@media (max-width: 768px) {
+    .dashboard-footer {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+        padding: 20px 0;
+    }
+
+    .footer-left {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .footer-sep {
+        display: none;
+    }
+
+    .footer-right {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+    }
+}
+
 /* Sidebar Enhancements */
 .collapse-btn-bottom {
     display: flex;
@@ -1246,6 +1332,7 @@
 
 .search-icon {
     color: var(--text-muted);
+    margin-right: 10px;
 }
 
 .btn-icon {
@@ -1392,7 +1479,7 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Mobile overlay */
+/* Mobile overlay - darkens background when drawer is open */
 .mobile-overlay {
     display: none;
     position: fixed;
@@ -1400,7 +1487,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(22, 22, 22, 0.85);
     z-index: 998;
 }
 
@@ -1411,9 +1498,12 @@
     top: 0;
     left: -280px;
     width: 280px;
-    height: 100vh;
+    height: 100%;
     z-index: 999;
     transition: left 0.3s ease;
+    background: var(--bg-charcoal);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobile-drawer.open {
@@ -1423,6 +1513,7 @@
 .mobile-drawer .sidebar {
     width: 280px !important;
     height: 100%;
+    background: transparent;
 }
 
 /* Mobile breakpoint */
@@ -1437,6 +1528,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        margin-left: -8px; /* Align with left edge padding */
     }
 
     /* Show mobile overlay when menu is open */
@@ -1494,6 +1586,11 @@
         grid-template-columns: 1fr;
     }
 
+    /* Fix chart container height on mobile for ResponsiveContainer */
+    .indices-card .chart-container-full {
+        height: 250px;
+    }
+
     /* Feature cards stack on mobile */
     .feature-cards {
         flex-direction: column;
@@ -1540,4 +1637,21 @@
 
 .view-more-btn svg.rotated {
     transform: rotate(180deg);
+}
+
+/* ========================================
+   iOS SAFE AREA SUPPORT
+   ======================================== */
+
+/* Content extends into safe area - visible behind home indicator */
+@media (max-width: 768px) {
+    /* Page container padding ensures last content item is scrollable above home indicator */
+    .page-container {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    /* Mobile drawer sidebar padding for bottom safe area */
+    .mobile-drawer .sidebar {
+        padding-bottom: calc(32px + env(safe-area-inset-bottom));
+    }
 }

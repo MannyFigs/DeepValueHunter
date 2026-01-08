@@ -81,7 +81,7 @@ function App() {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Search stocks by symbol or name..."
+              placeholder="Search stocks..."
               className="search-input"
             />
           </div>

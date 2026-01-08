@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, ArrowDownRight, Eye, Crown, Gem, Loader2 } from 'lucide-react'
 import {
-    ResponsiveContainer,
     AreaChart,
     Area,
     XAxis,
@@ -11,6 +10,69 @@ import {
     CartesianGrid
 } from 'recharts'
 import { fetchTrendingStocksWithPrices, fetchMarketIndex } from '../services/api'
+
+// Safari-compatible chart component that doesn't use ResponsiveContainer
+const ChartWithDimensions = ({ indexLoading, indexData }) => {
+    const containerRef = useRef(null)
+    const [dimensions, setDimensions] = useState({ width: 400, height: 250 })
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const width = containerRef.current.offsetWidth
+                setDimensions({ width: width > 0 ? width : 400, height: 250 })
+            }
+        }
+
+        updateDimensions()
+        window.addEventListener('resize', updateDimensions)
+
+        // Also update after a short delay to catch any layout shifts
+        const timer = setTimeout(updateDimensions, 100)
+
+        return () => {
+            window.removeEventListener('resize', updateDimensions)
+            clearTimeout(timer)
+        }
+    }, [])
+
+    return (
+        <div className="chart-container-full" ref={containerRef}>
+            {indexLoading ? (
+                <div className="loading-state">
+                    <Loader2 className="spinner" size={24} />
+                </div>
+            ) : indexData?.chartData ? (
+                <AreaChart
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    data={indexData.chartData}
+                    margin={{ top: 5, right: 0, left: 5, bottom: 5 }}
+                >
+                    <defs>
+                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#CCFF00" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#CCFF00" stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="#666" fontSize={11} />
+                    <YAxis stroke="#666" fontSize={11} domain={['dataMin - 50', 'dataMax + 50']} orientation="right" tickFormatter={(value) => value.toLocaleString('en-US', { maximumFractionDigits: 0 })} />
+                    <Tooltip
+                        contentStyle={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                        itemStyle={{ color: '#CCFF00' }}
+                        formatter={(value) => [value?.toLocaleString('en-US', { minimumFractionDigits: 2 }), 'Value']}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#CCFF00" strokeWidth={2} fill="url(#chartGradient)" />
+                </AreaChart>
+            ) : (
+                <div className="error-state">
+                    <span>Failed to load chart data</span>
+                </div>
+            )}
+        </div>
+    )
+}
 
 // TradingView Widget Components
 const TradingViewTimeline = () => {
@@ -61,6 +123,7 @@ const TradingViewHeatmap = () => {
     const containerRef = useRef(null)
 
     useEffect(() => {
+        let isMounted = true
         const container = containerRef.current
         if (!container) return
 
@@ -85,15 +148,24 @@ const TradingViewHeatmap = () => {
             "height": "100%"
         })
 
-        container.innerHTML = ''
-        const widgetContainer = document.createElement('div')
-        widgetContainer.className = 'tradingview-widget-container__widget'
-        container.appendChild(widgetContainer)
-        container.appendChild(script)
+        // Only modify DOM if still mounted
+        if (isMounted) {
+            container.innerHTML = ''
+            const widgetContainer = document.createElement('div')
+            widgetContainer.className = 'tradingview-widget-container__widget'
+            container.appendChild(widgetContainer)
+            container.appendChild(script)
+        }
 
         return () => {
-            if (containerRef.current) {
-                containerRef.current.innerHTML = ''
+            isMounted = false
+            // Use try-catch to prevent errors during cleanup
+            try {
+                if (containerRef.current) {
+                    containerRef.current.innerHTML = ''
+                }
+            } catch (e) {
+                // Ignore cleanup errors
             }
         }
     }, [])
@@ -133,6 +205,9 @@ const Dashboard = () => {
     const [indexData, setIndexData] = useState(null)
     const [indexLoading, setIndexLoading] = useState(true)
 
+    // Track if this is the first load for trending stocks
+    const isFirstTrendingLoad = useRef(true)
+
     // Detect if mobile for animation direction
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
 
@@ -143,20 +218,22 @@ const Dashboard = () => {
     }, [])
 
     useEffect(() => {
-        let isFirstLoad = trendingStocks.length === 0
-
         const loadTrendingStocks = async () => {
             try {
                 // Only show loading spinner on initial load, not refreshes
-                if (isFirstLoad) {
+                if (isFirstTrendingLoad.current) {
                     setLoading(true)
                 }
                 const stocks = await fetchTrendingStocksWithPrices(6)
                 setTrendingStocks(stocks)
                 setError(null)
+                isFirstTrendingLoad.current = false
             } catch (err) {
                 console.error('Failed to load trending stocks:', err)
-                setError('Failed to load trending stocks')
+                // Only show error on first load, keep existing data on refresh failure
+                if (isFirstTrendingLoad.current) {
+                    setError('Failed to load trending stocks')
+                }
             } finally {
                 setLoading(false)
             }
@@ -169,7 +246,6 @@ const Dashboard = () => {
 
         // Refresh data every 60 seconds
         const interval = setInterval(() => {
-            isFirstLoad = false
             loadTrendingStocks()
         }, 60000)
 
@@ -184,6 +260,8 @@ const Dashboard = () => {
 
     // Fetch market index data when active index or time range changes
     useEffect(() => {
+        let isCancelled = false
+
         const loadIndexData = async () => {
             try {
                 // Only show loading on first load or when switching tabs/time ranges
@@ -191,24 +269,38 @@ const Dashboard = () => {
                     setIndexLoading(true)
                 }
                 const data = await fetchMarketIndex(activeIndex, activeTimeRange)
-                setIndexData(data)
-                isFirstIndexLoad.current = false
+                if (!isCancelled) {
+                    setIndexData(data)
+                    isFirstIndexLoad.current = false
+                }
             } catch (err) {
                 console.error('Failed to load index data:', err)
-                setIndexData(null)
+                if (!isCancelled) {
+                    setIndexData(null)
+                }
             } finally {
-                setIndexLoading(false)
+                if (!isCancelled) {
+                    setIndexLoading(false)
+                }
             }
         }
 
         // Delay initial fetch to let card animations complete, but not subsequent fetches
         if (isFirstIndexLoad.current) {
             const timer = setTimeout(() => {
-                loadIndexData()
+                if (!isCancelled) {
+                    loadIndexData()
+                }
             }, 1000)
-            return () => clearTimeout(timer)
+            return () => {
+                isCancelled = true
+                clearTimeout(timer)
+            }
         } else {
             loadIndexData()
+            return () => {
+                isCancelled = true
+            }
         }
     }, [activeIndex, activeTimeRange])
 
@@ -317,7 +409,6 @@ const Dashboard = () => {
                     </div>
                     <div className="index-header-row">
                         <div className="index-info">
-                            <div className="index-badge">{INDEX_BADGES[activeIndex]}</div>
                             <span className="index-name">{activeIndex} Index</span>
                         </div>
                         <div className="index-price-section">
@@ -349,37 +440,10 @@ const Dashboard = () => {
                             </button>
                         ))}
                     </div>
-                    <div className="chart-container-full">
-                        {indexLoading ? (
-                            <div className="loading-state">
-                                <Loader2 className="spinner" size={24} />
-                            </div>
-                        ) : indexData?.chartData ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={indexData.chartData} margin={{ top: 5, right: 0, left: 5, bottom: 5 }}>
-                                    <defs>
-                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#CCFF00" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#CCFF00" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                    <XAxis dataKey="date" stroke="#666" fontSize={11} />
-                                    <YAxis stroke="#666" fontSize={11} domain={['dataMin - 50', 'dataMax + 50']} orientation="right" tickFormatter={(value) => value.toLocaleString('en-US', { maximumFractionDigits: 0 })} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#CCFF00' }}
-                                        formatter={(value) => [value?.toLocaleString('en-US', { minimumFractionDigits: 2 }), 'Value']}
-                                    />
-                                    <Area type="monotone" dataKey="value" stroke="#CCFF00" strokeWidth={2} fill="url(#chartGradient)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="error-state">
-                                <span>Failed to load chart data</span>
-                            </div>
-                        )}
-                    </div>
+                    <ChartWithDimensions
+                        indexLoading={indexLoading}
+                        indexData={indexData}
+                    />
                 </motion.div>
 
                 <motion.div
