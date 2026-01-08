@@ -1,0 +1,20 @@
+Deep Value Hunter - UI Rebrand Prompt for Gemini (Nano Banana)
+=============================================================
+
+Generate a high-fidelity UI mockup for a premium stock market investment platform called "Deep Value Hunter". The design should be modern, professional, and sophisticated. Key features to include:
+
+- Dark theme with elegant color palette (deep navy/charcoal with gold or teal accents)
+- Clean header with logo, search bar, and user account area
+- Hero section with compelling tagline about discovering undervalued stocks
+- Dashboard layout showing: trending stocks with prices, market indices chart, and financial news feed
+- Stock market heatmap visualization showing sector performance
+- Feature cards for watchlist, super investors tracking, and curated stock picks
+- Professional typography and generous whitespace
+- Subtle glassmorphism or modern card styling
+- Footer with navigation links
+
+Make it look like a premium Bloomberg/Robinhood competitor. Show the full homepage layout as a desktop web mockup.
+
+=============================================================
+Generated: January 7, 2026
+Tool: Gemini with Nano Banana Pro (Image Generation)
